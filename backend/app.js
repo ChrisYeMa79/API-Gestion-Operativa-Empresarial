@@ -29,6 +29,13 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => {
     res.send('API de Gestión Operativa funcionando');
 });
+// Ruta de estado de la API
+app.get('/status', (req, res) => {
+    res.json({
+        status: 'OK',
+        message: 'API de Gestión Operativa funcionando correctamente'
+    });
+});
 
 // Ruta de prueba de conexión a MySQL
 app.get('/db-test', async (req, res) => {

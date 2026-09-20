@@ -184,6 +184,53 @@ router.patch('/:id/confirmar', async (req, res) => {
     }
 });
 
+// Obtener todas las evaluaciones vigentes de un proyecto
+// Se incluyen BORRADOR y CONFIRMADA para completar el flujo desde el frontend.
+router.get('/proyecto/:proyectoId', async (req, res) => {
+    try {
+        const { proyectoId } = req.params;
+
+        const [rows] = await pool.query(
+            `SELECT
+                ei.id AS evaluacion_id,
+                ei.evento_id,
+                e.proyecto_id,
+                e.tipo,
+                e.descripcion,
+                e.fecha_inicio,
+                e.fecha_fin,
+                ei.afecta_plazo,
+                ei.dias_adicionales,
+                ei.impacto_inicio,
+                ei.impacto_fin,
+                ei.afecta_costo,
+                ei.monto_adicional,
+                ei.justificacion,
+                ei.estado_registro,
+                ei.vigente
+             FROM evaluaciones_impacto ei
+             INNER JOIN eventos e
+                ON ei.evento_id = e.id
+             WHERE e.proyecto_id = ?
+               AND ei.vigente = 1
+             ORDER BY ei.id DESC`,
+            [proyectoId]
+        );
+
+        res.status(200).json(rows);
+
+    } catch (error) {
+        console.error(
+            'Error al obtener evaluaciones del proyecto:',
+            error
+        );
+
+        res.status(500).json({
+            error: 'Error al obtener evaluaciones del proyecto'
+        });
+    }
+});
+
 // Obtener evaluaciones de impacto confirmadas y vigentes
 router.get('/confirmadas', async (req, res) => {
     try {
