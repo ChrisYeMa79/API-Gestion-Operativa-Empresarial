@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
-const pool = require('./config/db');
+
 const rateLimit = require('express-rate-limit');
 
 const proyectosRoutes = require('./routes/proyectos.routes');
@@ -53,26 +53,6 @@ app.get('/status', (req, res) => {
     });
 });
 
-// Ruta de prueba de conexión a MySQL
-app.get('/db-test', async (req, res) => {
-    try {
-        const [rows] = await pool.query(
-            'SELECT DATABASE() AS database_name'
-        );
-
-        res.json({
-            message: 'Conexión a MySQL correcta',
-            database: rows[0].database_name
-        });
-
-    } catch (error) {
-        console.error('Error de conexión:', error);
-
-        res.status(500).json({
-            error: 'Error de conexión a MySQL'
-        });
-    }
-});
 
 // Rutas de proyectos
 app.use('/proyectos', proyectosRoutes);
