@@ -88,6 +88,15 @@ app.use('/evaluaciones-impacto', evaluacionesImpactoRoutes);
 
 app.use('/proyecciones', proyeccionesRoutes);
 
+// Manejador global de errores seguros
+app.use((err, req, res, next) => {
+    console.error('Error interno de la API:', err);
+
+    res.status(500).json({
+        error: 'Ocurrió un error interno en el servidor'
+    });
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(
