@@ -4,6 +4,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const pool = require('./config/db');
+const rateLimit = require('express-rate-limit');
 
 const proyectosRoutes = require('./routes/proyectos.routes');
 const lineasBaseRoutes = require('./routes/lineasBase.routes');
@@ -23,7 +24,20 @@ app.use(cors({
     origin: FRONTEND_URL
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+
+// Limitar cantidad de peticiones por IP
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    limit: 100,               // máximo 100 solicitudes por IP
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: {
+        error: 'Demasiadas solicitudes. Intenta nuevamente en unos minutos.'
+    }
+});
+
+app.use(apiLimiter);
 
 const PORT = process.env.PORT || 3000;
 
