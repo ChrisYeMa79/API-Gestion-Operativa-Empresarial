@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function App() {
   const [proyecto, setProyecto] = useState(null)
@@ -49,7 +50,7 @@ function App() {
     const cargarDatos = async () => {
       try {
         const respuestaProyecto = await fetch(
-          'http://localhost:3000/proyectos/1'
+          `${API_URL}/proyectos/1`
         )
 
         if (!respuestaProyecto.ok) {
@@ -59,7 +60,7 @@ function App() {
         const datosProyecto = await respuestaProyecto.json()
 
         const respuestaProyeccion = await fetch(
-          'http://localhost:3000/proyecciones/proyecto/1/actual'
+          `${API_URL}/proyecciones/proyecto/1/actual`
         )
 
         if (!respuestaProyeccion.ok) {
@@ -123,7 +124,7 @@ function App() {
       setError(null)
 
       const respuesta = await fetch(
-        'http://localhost:3000/lineas-base/1/linea-base'
+        `${API_URL}/lineas-base/1/linea-base`
       )
 
       if (!respuesta.ok) {
@@ -157,7 +158,7 @@ function App() {
       setError(null)
 
       const respuesta = await fetch(
-        'http://localhost:3000/eventos/proyecto/1'
+        `${API_URL}/eventos/proyecto/1`
       )
 
       if (!respuesta.ok) {
@@ -201,7 +202,7 @@ function App() {
       setError(null)
 
       const respuesta = await fetch(
-        'http://localhost:3000/eventos',
+        `${API_URL}/eventos`,
         {
           method: 'POST',
           headers: {
@@ -263,7 +264,7 @@ function App() {
       setError(null)
 
       const respuesta = await fetch(
-        `http://localhost:3000/eventos/${idEvento}/confirmar`,
+        `${API_URL}/eventos/${idEvento}/confirmar`,
         {
           method: 'PATCH',
           headers: {
@@ -314,8 +315,8 @@ function App() {
       // Cargamos también los eventos para poder elegir únicamente
       // aquellos que ya fueron confirmados.
       const [respuestaEvaluaciones, respuestaEventos] = await Promise.all([
-        fetch('http://localhost:3000/evaluaciones-impacto/proyecto/1'),
-        fetch('http://localhost:3000/eventos/proyecto/1')
+        fetch(`${API_URL}/evaluaciones-impacto/proyecto/1`),
+fetch(`${API_URL}/eventos/proyecto/1`)
       ])
 
       if (!respuestaEvaluaciones.ok) {
@@ -357,7 +358,7 @@ function App() {
       }
 
       const respuesta = await fetch(
-        'http://localhost:3000/evaluaciones-impacto',
+        `${API_URL}/evaluaciones-impacto`,
         {
           method: 'POST',
           headers: {
@@ -424,7 +425,7 @@ function App() {
       setMensajeExito('')
 
       const respuesta = await fetch(
-        `http://localhost:3000/evaluaciones-impacto/${idEvaluacion}/confirmar`,
+        `${API_URL}/evaluaciones-impacto/${idEvaluacion}/confirmar`,
         {
           method: 'PATCH',
           headers: {
@@ -462,7 +463,7 @@ function App() {
       setMensajeExito('')
 
       const respuesta = await fetch(
-        'http://localhost:3000/proyecciones/proyecto/1',
+        `${API_URL}/proyecciones/proyecto/1`,
         { method: 'POST' }
       )
 
@@ -477,7 +478,7 @@ function App() {
       // Volvemos a consultar el endpoint de proyección actual para que
       // las tarjetas superiores reflejen inmediatamente el nuevo cálculo.
       const respuestaActual = await fetch(
-        'http://localhost:3000/proyecciones/proyecto/1/actual'
+        `${API_URL}/proyecciones/proyecto/1/actual`
       )
 
       if (!respuestaActual.ok) {
@@ -516,7 +517,7 @@ function App() {
       setError(null)
 
       const respuesta = await fetch(
-        'http://localhost:3000/proyecciones/proyecto/1'
+        `${API_URL}/proyecciones/proyecto/1`
       )
 
       if (!respuesta.ok) {
