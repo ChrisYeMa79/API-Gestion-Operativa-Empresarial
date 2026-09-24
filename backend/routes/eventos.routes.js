@@ -31,6 +31,57 @@ router.post('/', async (req, res) => {
             });
         }
 
+        // Validaciones server-side adicionales
+const tiposPermitidos = [
+    'SUMINISTRO',
+    'MAQUINARIA',
+    'PERSONAL',
+    'CLIMA',
+    'OTRO'
+];
+
+if (!Number.isInteger(Number(proyecto_id)) || Number(proyecto_id) <= 0) {
+    return res.status(400).json({
+        error: 'proyecto_id debe ser un número entero positivo'
+    });
+}
+
+if (!tiposPermitidos.includes(tipo)) {
+    return res.status(400).json({
+        error: 'Tipo de evento no válido'
+    });
+}
+
+if (typeof descripcion !== 'string' || descripcion.trim().length > 500) {
+    return res.status(400).json({
+        error: 'La descripción debe ser texto y no superar 500 caracteres'
+    });
+}
+
+if (Number.isNaN(Date.parse(fecha_inicio))) {
+    return res.status(400).json({
+        error: 'fecha_inicio no tiene un formato de fecha válido'
+    });
+}
+
+if (fecha_fin && Number.isNaN(Date.parse(fecha_fin))) {
+    return res.status(400).json({
+        error: 'fecha_fin no tiene un formato de fecha válido'
+    });
+}
+
+if (fecha_fin && new Date(fecha_fin) < new Date(fecha_inicio)) {
+    return res.status(400).json({
+        error: 'fecha_fin no puede ser anterior a fecha_inicio'
+    });
+}
+
+if (costo_observado != null && Number(costo_observado) < 0) {
+    return res.status(400).json({
+        error: 'costo_observado no puede ser negativo'
+    });
+}
+
         const [result] = await pool.query(
             `INSERT INTO eventos
             (
