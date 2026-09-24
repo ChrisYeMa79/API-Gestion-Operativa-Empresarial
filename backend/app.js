@@ -14,6 +14,9 @@ const proyeccionesRoutes = require('./routes/proyecciones.routes');
 
 const app = express();
 
+// Ocultar información del framework utilizado
+app.disable('x-powered-by');
+
 // Seguridad HTTP
 app.use(helmet());
 
