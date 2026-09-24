@@ -169,7 +169,7 @@ function App() {
 
       const datos = await respuesta.json()
 
-      console.log('DATOS DE EVENTOS:', datos)
+      
 
       if (Array.isArray(datos)) {
         setEventos(datos)
@@ -235,7 +235,7 @@ function App() {
         )
       }
 
-      console.log('EVENTO REGISTRADO:', datos)
+      
 
       setNuevoEvento({
         tipo: '',
@@ -284,7 +284,7 @@ function App() {
         )
       }
 
-      console.log('EVENTO CONFIRMADO:', datos)
+      
 
       await cargarEventos(true)
 
@@ -506,7 +506,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
   // Lo conectaremos en el siguiente paso
   // =====================================================
   const cargarHistorial = async () => {
-    console.log('CLICK EN HISTORIAL')
+    
     // Si Historial ya está abierto, lo cerramos
     if (moduloActivo === 'historial') {
       setModuloActivo(null)
@@ -528,7 +528,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
 
       const datos = await respuesta.json()
 
-      console.log('HISTORIAL:', datos)
+    
 
       setHistorial(
         Array.isArray(datos.proyecciones)
