@@ -88,6 +88,13 @@ app.use('/evaluaciones-impacto', evaluacionesImpactoRoutes);
 
 app.use('/proyecciones', proyeccionesRoutes);
 
+// Manejo de rutas no encontradas
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Ruta no encontrada'
+    });
+});
+
 // Manejador global de errores seguros
 app.use((err, req, res, next) => {
     console.error('Error interno de la API:', err);
