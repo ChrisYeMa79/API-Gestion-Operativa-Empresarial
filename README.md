@@ -80,6 +80,7 @@ Node.js + Express
 - dotenv
 - Helmet
 - CORS
+- express-rate-limit
 
 ### Frontend
 
@@ -96,6 +97,9 @@ Node.js + Express
 - Git
 - GitHub
 - Thunder Client / herramientas de prueba de API
+- Mocha
+- Chai
+- Supertest
 
 ---
 
@@ -369,7 +373,88 @@ Entre ellos:
 node_modules
 .env
 ```
+### Rate limiting
 
+La API utiliza `express-rate-limit` para limitar la cantidad de solicitudes realizadas desde una misma IP.
+
+La configuración actual permite un máximo de 100 solicitudes por IP dentro de una ventana de 15 minutos.
+
+Este control ayuda a reducir abuso de la API y solicitudes excesivas.
+
+### Límite del cuerpo de las peticiones
+
+Express está configurado para limitar el tamaño de las solicitudes JSON:
+
+```javascript
+app.use(express.json({ limit: '100kb' }));
+
+### Validación del lado del servidor
+
+Los datos recibidos por la API son validados en el backend antes de ser procesados o enviados a MySQL.
+
+Entre las validaciones implementadas se encuentran:
+
+- Campos obligatorios.
+- Tipos de evento permitidos.
+- Identificadores numéricos válidos.
+- Formatos de fecha.
+- Coherencia entre fecha de inicio y fecha de fin.
+- Rechazo de costos negativos.
+
+Las validaciones del frontend mejoran la experiencia del usuario, pero el backend conserva la responsabilidad final de validar los datos.
+
+### Manejo seguro de errores
+
+La aplicación dispone de manejo controlado para rutas inexistentes y errores internos.
+
+Las rutas no encontradas responden con código HTTP `404` y un mensaje controlado.
+
+Los errores internos responden con código HTTP `500` sin enviar al cliente detalles técnicos internos de la aplicación.
+
+### Reducción de exposición de información
+
+Se deshabilitó la cabecera que identifica automáticamente el framework utilizado por el servidor.
+
+También se retiraron rutas y archivos utilizados exclusivamente durante las etapas de prueba y desarrollo.
+
+### Revisión de dependencias
+
+Se ejecutó `npm audit` tanto en backend como en frontend.
+
+Resultado actual: `found 0 vulnerabilities`.
+
+### Pruebas automatizadas de seguridad y validación
+
+El backend incorpora pruebas automatizadas mediante:
+
+- Mocha
+- Chai
+- Supertest
+
+Actualmente se verifican seis escenarios:
+
+1. Respuesta correcta de `GET /status`.
+2. Manejo controlado de una ruta inexistente.
+3. Rechazo de eventos con campos obligatorios faltantes.
+4. Rechazo de tipos de evento no válidos.
+5. Rechazo de fechas de inicio inválidas.
+6. Rechazo de costos observados negativos.
+
+Resultado actual: `6 passing`.
+
+### Consideraciones para producción
+
+La configuración actual corresponde al entorno local de desarrollo.
+
+Para un despliegue de producción deberán completarse controles adicionales, entre ellos:
+
+- Utilizar HTTPS/TLS.
+- Sustituir el usuario MySQL de desarrollo por un usuario específico con privilegios mínimos.
+- Configurar CORS con el dominio definitivo del frontend.
+- Definir mecanismos de monitoreo, respaldo y recuperación.
+- Configurar las variables de entorno correspondientes al servicio de producción.
+
+Los controles relacionados con autenticación, sesiones, cookies, CSRF y carga de archivos no forman parte de la arquitectura actual de esta versión de la aplicación.
 ---
 
 ## 10. Conexión con MySQL
@@ -500,10 +585,13 @@ Entre las validaciones implementadas se encuentran:
 - Línea base confirmada.
 - Evaluaciones confirmadas.
 - Evaluaciones vigentes.
-- Fechas requeridas.
-- Valores numéricos válidos.
 - Campos obligatorios según el tipo de operación.
-
+- Identificadores numéricos válidos.
+- Tipos de evento permitidos.
+- Formatos de fecha válidos.
+- Coherencia entre fecha de inicio y fecha de fin.
+- Valores numéricos válidos.
+- Rechazo de costos negativos.
 También se utilizan códigos HTTP según el resultado de la solicitud, incluyendo:
 
 ```text
@@ -526,6 +614,12 @@ También se utilizan códigos HTTP según el resultado de la solicitud, incluyen
 | Variables de entorno | dotenv | `backend/app.js` |
 | Seguridad HTTP | Helmet | `backend/app.js` |
 | Control de origen | CORS | `backend/app.js` |
+| Rate limiting | express-rate-limit | `backend/app.js` |
+| Límite de payload | JSON limitado a 100kb | `backend/app.js` |
+| Manejo seguro de errores | Respuestas controladas 404 / 500 | `backend/app.js` |
+| Validación server-side | Validación de entradas antes del procesamiento | `backend/routes/` |
+| Pruebas automatizadas | Mocha + Chai + Supertest, 6 pruebas | `backend/test/app.test.js` |
+| Auditoría de dependencias | npm audit: 0 vulnerabilidades | `backend/package.json` / `frontend/package.json` |
 | Línea base | Registro y validación | `backend/routes/lineasBase.routes.js` |
 | Eventos operativos | Registro y consulta | `backend/routes/eventos.routes.js` |
 | Evaluación humana | Evaluaciones de impacto | `backend/routes/evaluacionesImpacto.js` |
@@ -533,6 +627,7 @@ También se utilizan códigos HTTP según el resultado de la solicitud, incluyen
 | Superposición | Fusión de periodos | `backend/utils/calcularImpactos.js` |
 | Green Software | Endpoint optimizado de estado actual | `backend/routes/proyecciones.routes.js` |
 | Frontend | React + Vite | `frontend/src/` |
+| Configuración del frontend | URL del backend mediante VITE_API_URL | `frontend/.env.example` / `frontend/src/App.jsx` |
 | Interfaz responsive | CSS adaptable | `frontend/src/App.css` |
 | Control de versiones | Git / GitHub | Repositorio del proyecto |
 
@@ -624,18 +719,11 @@ http://localhost:5173
 ---
 
 ## 16. Scripts disponibles
-
 ### Backend
 
 ```bash
 npm start
-```
-
-Ejecuta:
-
-```text
-node app.js
-```
+npm test
 
 ### Frontend
 
@@ -672,8 +760,21 @@ Eventos
 Evaluaciones
 Historial
 ```
+El proyecto también cuenta actualmente con:
 
-y la generación y consulta de proyecciones de tiempo y costo.
+- Validaciones server-side reforzadas.
+- Manejo controlado de errores HTTP.
+- Helmet y CORS.
+- Rate limiting.
+- Límite de tamaño para solicitudes JSON.
+- Variables de entorno para configuración sensible.
+- URL del backend configurable desde el frontend mediante `VITE_API_URL`.
+- 6 pruebas automatizadas del backend ejecutadas correctamente.
+- Auditoría de dependencias del backend: 0 vulnerabilidades.
+- Auditoría de dependencias del frontend: 0 vulnerabilidades.
+- Compilación de producción del frontend verificada mediante `npm run build`.
+- Repositorio Git actualizado y respaldado en GitHub.
+
 
 ---
 
@@ -681,15 +782,23 @@ y la generación y consulta de proyecciones de tiempo y costo.
 
 El proyecto mantiene separados frontend y backend para permitir estrategias de despliegue independientes.
 
-El frontend se encuentra preparado para generación de producción mediante:
+El frontend se encuentra preparado para generación de producción mediante `npm run build`, proceso que fue ejecutado y verificado correctamente.
 
-```bash
-npm run build
-```
+La URL del backend se encuentra desacoplada del código mediante la variable de entorno `VITE_API_URL`, permitiendo configurar una dirección diferente para desarrollo o producción sin modificar el código fuente.
 
-El despliegue público constituye la siguiente etapa del proyecto.
+El despliegue público se considera una etapa adicional del proyecto y puede realizarse utilizando servicios compatibles con las tecnologías empleadas.
 
-Durante esta etapa será necesario sustituir las referencias locales del backend y ajustar CORS para el dominio de producción.
+Para un entorno de producción será necesario configurar, entre otros aspectos:
+
+- URL pública del backend mediante `VITE_API_URL`.
+- CORS con el dominio definitivo del frontend.
+- Variables de entorno del backend.
+- Conexión segura a la base de datos de producción.
+- Usuario de base de datos con privilegios mínimos.
+- HTTPS/TLS.
+- Monitoreo, respaldo y estrategia de recuperación.
+
+La versión actual se encuentra completamente funcional y verificada en entorno local.
 
 ---
 
