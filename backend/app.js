@@ -87,10 +87,14 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
-    console.log(
-        `Servidor ejecutándose en http://localhost:${PORT}`
-    );
-});
+// Iniciar servidor solo cuando app.js se ejecuta directamente
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(
+            `Servidor ejecutándose en http://localhost:${PORT}`
+        );
+    });
+}
 
+// Exportar aplicación para pruebas automatizadas
+module.exports = app;
