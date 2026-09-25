@@ -3,7 +3,7 @@
   "info": {
     "title": "API de Gestión Operativa Empresarial",
     "version": "1.0.0",
-    "description": "Especificación de las operaciones registradas en backend/app.js y backend/routes. No hay prefijo /api/v1 ni autenticación implementada. Los campos de autor no verifican identidad. Los esquemas de entrada describen el uso previsto y explican las validaciones parciales y coerciones actuales; no añaden validación al servidor. Las filas SQL y su serialización requieren contrastarse con el DDL, no incluido en el repositorio. Límite JSON: 100kb. El manejador global transforma errores de parsing/tamaño en 500; no se prometen 400/413 para esos casos. Rutas no registradas responden 404 con {\"error\":\"Ruta no encontrada\"}. No existen /db-test, /api-docs ni /api-docs.json registrados actualmente."
+    "description": "Especificación de las operaciones registradas en backend/app.js y backend/routes. No hay prefijo /api/v1 ni autenticación implementada. Los campos de autor no verifican identidad. Los esquemas de entrada describen el uso previsto y explican las validaciones parciales y coerciones actuales; no añaden validación al servidor. Las filas SQL y su serialización requieren contrastarse con el DDL, no incluido en el repositorio. Límite JSON: 100kb. El manejador global transforma errores de parsing/tamaño en 500; no se prometen 400/413 para esos casos. Rutas no registradas responden 404 con {\"error\":\"Ruta no encontrada\"}. No existe /db-test. Swagger est? disponible en /api-docs y /api-docs.json."
   },
   "servers": [
     {
@@ -34,6 +34,9 @@
     },
     {
       "name": "Proyecciones"
+    },
+    {
+      "name": "Autenticaci?n"
     }
   ],
   "paths": {
@@ -1754,6 +1757,143 @@
           }
         ]
       }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Autenticaci?n"
+        ],
+        "operationId": "loginUsuario",
+        "summary": "Iniciar sesi?n",
+        "description": "Verifica Argon2id, estado ACTIVO y rol ADMIN/SUPERVISOR. Usuario inexistente, inactivo, contrase?a incorrecta o hash temporal reciben el mismo 401. M?ximo 10 intentos por IP cada 15 minutos, adem?s del l?mite global. Cache-Control: no-store. No escribe en MySQL.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthLogin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesi?n iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cuerpo inv?lido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inv?lidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "L?mite global o de login superado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorGlobal"
+          },
+          "503": {
+            "description": "Autenticaci?n no disponible: configuraci?n JWT o servicio de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Autenticaci?n"
+        ],
+        "operationId": "obtenerUsuarioAutenticado",
+        "summary": "Consultar usuario autenticado",
+        "description": "Revalida estado, rol y token_version. No devuelve hash ni token_version. Cache-Control: no-store.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario actual",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "usuario"
+                  ],
+                  "properties": {
+                    "usuario": {
+                      "$ref": "#/components/schemas/AuthUsuario"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente, inv?lido, vencido o revocado; usuario inexistente, no ACTIVO o rol desconocido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorGlobal"
+          },
+          "503": {
+            "description": "Autenticaci?n no disponible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2625,6 +2765,84 @@
             "$ref": "#/components/schemas/LineaBase"
           }
         }
+      },
+      "AuthUsuario": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "correo",
+          "rol"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "rol": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "SUPERVISOR"
+            ]
+          }
+        }
+      },
+      "AuthLogin": {
+        "type": "object",
+        "required": [
+          "correo",
+          "password"
+        ],
+        "properties": {
+          "correo": {
+            "type": "string",
+            "maxLength": 150,
+            "description": "Correo registrado; se recortan espacios externos."
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "minLength": 1,
+            "description": "M?ximo 1024 bytes UTF-8; no se recorta ni normaliza. No existe contrase?a predeterminada."
+          }
+        }
+      },
+      "AuthToken": {
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "usuario"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "JWT sin contrase?a, hash, correo ni rol embebidos."
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "integer",
+            "enum": [
+              900
+            ]
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/AuthUsuario"
+          }
+        }
       }
     },
     "responses": {
@@ -2653,6 +2871,14 @@
             }
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT HS256 de 15 minutos. Se verifican firma, emisor, audiencia, expiraci?n, estado ACTIVO y token_version. El rol se consulta en MySQL."
       }
     }
   }

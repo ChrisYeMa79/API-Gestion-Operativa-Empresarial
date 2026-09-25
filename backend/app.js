@@ -7,6 +7,9 @@ const swaggerUi = require('swagger-ui-express');
 const openapiDocument = require('./docs/openapi.json');
 
 const rateLimit = require('express-rate-limit');
+const { createAuthRouter } = require('./routes/auth.routes');
+const { createUsuariosRepository } = require('./repositories/usuarios.repository');
+const { getAuthConfig } = require('./config/auth');
 
 const proyectosRoutes = require('./routes/proyectos.routes');
 const lineasBaseRoutes = require('./routes/lineasBase.routes');
@@ -43,6 +46,11 @@ const apiLimiter = rateLimit({
 });
 
 app.use(apiLimiter);
+
+app.use('/auth', createAuthRouter({
+    repository: createUsuariosRepository(require('./config/db')),
+    getConfig: getAuthConfig
+}));
 
 const PORT = process.env.PORT || 3000;
 
