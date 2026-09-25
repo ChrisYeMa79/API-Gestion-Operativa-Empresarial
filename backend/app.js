@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const openapiDocument = require('./docs/openapi.json');
 
 const rateLimit = require('express-rate-limit');
 
@@ -70,6 +72,13 @@ app.use('/eventos', eventosRoutes);
 app.use('/evaluaciones-impacto', evaluacionesImpactoRoutes);
 
 app.use('/proyecciones', proyeccionesRoutes);
+
+// Documentación de la API
+app.get('/api-docs.json', (req, res) => {
+    res.json(openapiDocument);
+});
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiDocument));
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

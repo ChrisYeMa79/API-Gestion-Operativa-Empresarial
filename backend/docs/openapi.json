@@ -1,0 +1,2659 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API de Gestión Operativa Empresarial",
+    "version": "1.0.0",
+    "description": "Especificación de las operaciones registradas en backend/app.js y backend/routes. No hay prefijo /api/v1 ni autenticación implementada. Los campos de autor no verifican identidad. Los esquemas de entrada describen el uso previsto y explican las validaciones parciales y coerciones actuales; no añaden validación al servidor. Las filas SQL y su serialización requieren contrastarse con el DDL, no incluido en el repositorio. Límite JSON: 100kb. El manejador global transforma errores de parsing/tamaño en 500; no se prometen 400/413 para esos casos. Rutas no registradas responden 404 con {\"error\":\"Ruta no encontrada\"}. No existen /db-test, /api-docs ni /api-docs.json registrados actualmente."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:{port}",
+      "description": "Servidor local; ajustar al valor de PORT o al servidor de despliegue.",
+      "variables": {
+        "port": {
+          "default": "3000"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Estado"
+    },
+    {
+      "name": "Proyectos"
+    },
+    {
+      "name": "Líneas base"
+    },
+    {
+      "name": "Eventos"
+    },
+    {
+      "name": "Evaluaciones de impacto"
+    },
+    {
+      "name": "Proyecciones"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Estado"
+        ],
+        "operationId": "obtenerInicio",
+        "summary": "Mensaje de funcionamiento",
+        "description": "Devuelve una cadena mediante res.send; no consulta MySQL.",
+        "responses": {
+          "200": {
+            "description": "Mensaje de funcionamiento",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "API de Gestión Operativa funcionando"
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorGlobal"
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "Estado"
+        ],
+        "operationId": "obtenerEstado",
+        "summary": "Estado de la API",
+        "description": "Comprueba que Express responde; no comprueba la conexión a MySQL.",
+        "responses": {
+          "200": {
+            "description": "Estado de la API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "message"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "OK",
+                  "message": "API de Gestión Operativa funcionando correctamente"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorGlobal"
+          }
+        }
+      }
+    },
+    "/proyectos": {
+      "get": {
+        "tags": [
+          "Proyectos"
+        ],
+        "operationId": "listarProyectos",
+        "summary": "Listar proyectos",
+        "description": "Devuelve un arreglo de proyectos con eliminado = FALSE, sin paginación ni orden explícito. Puede devolver [].",
+        "responses": {
+          "200": {
+            "description": "Listar proyectos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Proyecto"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener los proyectos También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Mensaje"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "message": "Error al obtener los proyectos"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Proyectos"
+        ],
+        "operationId": "crearProyecto",
+        "summary": "Crear proyecto",
+        "description": "Inserta el proyecto con estado PLANIFICACION. Valida presencia de nombre, fecha_inicio y propietario_id; no valida explícitamente el formato de fecha ni la existencia del propietario.",
+        "responses": {
+          "201": {
+            "description": "Crear proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProyectoResultado"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "nombre, fecha_inicio y propietario_id son obligatorios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "nombre, fecha_inicio y propietario_id son obligatorios"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al crear el proyecto También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Mensaje"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "message": "Error al crear el proyecto"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearProyecto"
+              },
+              "example": {
+                "nombre": "Proyecto de ejemplo",
+                "descripcion": "Seguimiento operativo",
+                "fecha_inicio": "2026-09-01",
+                "propietario_id": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proyectos/{id}": {
+      "get": {
+        "tags": [
+          "Proyectos"
+        ],
+        "operationId": "obtenerProyecto",
+        "summary": "Obtener proyecto",
+        "description": "Busca por ID y eliminado = FALSE.",
+        "responses": {
+          "200": {
+            "description": "Obtener proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proyecto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proyecto no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "Proyecto no encontrado"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener el proyecto También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Mensaje"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "message": "Error al obtener el proyecto"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/lineas-base/{id}/linea-base": {
+      "post": {
+        "tags": [
+          "Líneas base"
+        ],
+        "operationId": "crearLineaBase",
+        "summary": "Crear línea base",
+        "description": "El proyecto debe existir, no estar eliminado y estar en PLANIFICACION. Se rechaza cualquier línea base ya registrada para el proyecto. Inserta BORRADOR; las fechas y la duración se reciben del cliente, sin derivar una de otra.",
+        "responses": {
+          "201": {
+            "description": "Crear línea base",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineaBaseResultado"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "fecha_inicio, duracion_dias, fecha_fin_prevista y costo_base son obligatorios / duracion_dias debe ser mayor que 0 / costo_base no puede ser negativo / La línea base solo puede crearse mientras el proyecto está en PLANIFICACION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "fecha_inicio, duracion_dias, fecha_fin_prevista y costo_base son obligatorios"
+                    }
+                  },
+                  "caso2": {
+                    "value": {
+                      "message": "duracion_dias debe ser mayor que 0"
+                    }
+                  },
+                  "caso3": {
+                    "value": {
+                      "message": "costo_base no puede ser negativo"
+                    }
+                  },
+                  "caso4": {
+                    "value": {
+                      "message": "La línea base solo puede crearse mientras el proyecto está en PLANIFICACION"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proyecto no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "Proyecto no encontrado"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El proyecto ya tiene una línea base registrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "El proyecto ya tiene una línea base registrada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al crear la línea base También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Mensaje"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "message": "Error al crear la línea base"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto, no de la línea base. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearLineaBase"
+              },
+              "example": {
+                "fecha_inicio": "2026-09-01",
+                "duracion_dias": 30,
+                "fecha_fin_prevista": "2026-09-30",
+                "costo_base": 100000
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Líneas base"
+        ],
+        "operationId": "obtenerLineaBase",
+        "summary": "Obtener línea base",
+        "description": "Devuelve la fila del proyecto con mayor id, independientemente de su estado. No comprueba por separado la existencia o eliminación del proyecto.",
+        "responses": {
+          "200": {
+            "description": "Obtener línea base",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineaBase"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Línea base no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "Línea base no encontrada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener la línea base También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Mensaje"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "message": "Error al obtener la línea base"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto, no de la línea base. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/lineas-base/{id}/linea-base/confirmar": {
+      "patch": {
+        "tags": [
+          "Líneas base"
+        ],
+        "operationId": "confirmarLineaBase",
+        "summary": "Confirmar línea base",
+        "description": "Selecciona la línea base de mayor id del proyecto y asigna estado CONFIRMADA, confirmada_por y confirmada_en = NOW(). No cambia el estado del proyecto. Una confirmación repetida responde 400.",
+        "responses": {
+          "200": {
+            "description": "Confirmar línea base",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineaBaseResultado"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "confirmada_por es obligatorio / La línea base ya está confirmada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "confirmada_por es obligatorio"
+                    }
+                  },
+                  "caso2": {
+                    "value": {
+                      "message": "La línea base ya está confirmada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Línea base no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "message": "Línea base no encontrada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al confirmar la línea base También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Mensaje"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "message": "Error al confirmar la línea base"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto, no de la línea base. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmarLineaBase"
+              },
+              "example": {
+                "confirmada_por": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eventos": {
+      "post": {
+        "tags": [
+          "Eventos"
+        ],
+        "operationId": "crearEvento",
+        "summary": "Registrar evento",
+        "description": "Inserta los datos del evento. No verifica explícitamente la existencia del proyecto antes del INSERT. El estado inicial y eliminado dependen de los defaults de MySQL, no visibles en el repositorio.",
+        "responses": {
+          "201": {
+            "description": "Registrar evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventoResultado"
+                },
+                "example": {
+                  "message": "Evento registrado correctamente",
+                  "id_evento": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos obligatorios / proyecto_id debe ser un número entero positivo / Tipo de evento no válido / La descripción debe ser texto y no superar 500 caracteres / fecha_inicio no tiene un formato de fecha válido / fecha_fin no tiene un formato de fecha válido / fecha_fin no puede ser anterior a fecha_inicio / costo_observado no puede ser negativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Faltan campos obligatorios"
+                    }
+                  },
+                  "caso2": {
+                    "value": {
+                      "error": "proyecto_id debe ser un número entero positivo"
+                    }
+                  },
+                  "caso3": {
+                    "value": {
+                      "error": "Tipo de evento no válido"
+                    }
+                  },
+                  "caso4": {
+                    "value": {
+                      "error": "La descripción debe ser texto y no superar 500 caracteres"
+                    }
+                  },
+                  "caso5": {
+                    "value": {
+                      "error": "fecha_inicio no tiene un formato de fecha válido"
+                    }
+                  },
+                  "caso6": {
+                    "value": {
+                      "error": "fecha_fin no tiene un formato de fecha válido"
+                    }
+                  },
+                  "caso7": {
+                    "value": {
+                      "error": "fecha_fin no puede ser anterior a fecha_inicio"
+                    }
+                  },
+                  "caso8": {
+                    "value": {
+                      "error": "costo_observado no puede ser negativo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al registrar el evento También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al registrar el evento"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearEvento"
+              },
+              "example": {
+                "proyecto_id": 1,
+                "tipo": "CLIMA",
+                "descripcion": "Lluvia durante la operación",
+                "fecha_inicio": "2026-09-25",
+                "fecha_fin": "2026-09-27",
+                "afecta_operacion": 1,
+                "costo_observado": 500,
+                "registrado_por": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eventos/{id}/confirmar": {
+      "patch": {
+        "tags": [
+          "Eventos"
+        ],
+        "operationId": "confirmarEvento",
+        "summary": "Confirmar evento",
+        "description": "Exige un evento no eliminado. Asigna estado_registro = CONFIRMADO, confirmado_por y confirmado_en = NOW().",
+        "responses": {
+          "200": {
+            "description": "Confirmar evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventoResultado"
+                },
+                "example": {
+                  "message": "Evento confirmado correctamente",
+                  "id_evento": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Debe indicar el usuario que confirma el evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Debe indicar el usuario que confirma el evento"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Evento no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Evento no encontrado"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El evento ya está confirmado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "El evento ya está confirmado"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al confirmar el evento También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al confirmar el evento"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del evento. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmarEvento"
+              },
+              "example": {
+                "confirmado_por": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eventos/proyecto/{proyectoId}": {
+      "get": {
+        "tags": [
+          "Eventos"
+        ],
+        "operationId": "listarEventosProyecto",
+        "summary": "Listar eventos del proyecto",
+        "description": "Filtra eliminado = 0 y ordena fecha_inicio DESC. No exige que estén confirmados. Sin coincidencias devuelve total_eventos = 0 y eventos = [], incluso si el proyecto no existe.",
+        "responses": {
+          "200": {
+            "description": "Listar eventos del proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventosProyecto"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener los eventos También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener los eventos"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/evaluaciones-impacto": {
+      "post": {
+        "tags": [
+          "Evaluaciones de impacto"
+        ],
+        "operationId": "crearEvaluacion",
+        "summary": "Registrar evaluación de impacto",
+        "description": "Exige un evento existente, no eliminado y CONFIRMADO. Si afecta_plazo es el número 1 exige ambas fechas de impacto. No calcula dias_adicionales ni comprueba que coincida con el intervalo. Estado inicial y vigente dependen de los defaults SQL. No sustituye ni invalida otras evaluaciones del evento.",
+        "responses": {
+          "201": {
+            "description": "Registrar evaluación de impacto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluacionResultado"
+                },
+                "example": {
+                  "message": "Evaluación de impacto registrada correctamente",
+                  "id_evaluacion": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos obligatorios / Si afecta el plazo, impacto_inicio e impacto_fin son obligatorios / impacto_fin no puede ser anterior a impacto_inicio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Faltan campos obligatorios"
+                    }
+                  },
+                  "caso2": {
+                    "value": {
+                      "error": "Si afecta el plazo, impacto_inicio e impacto_fin son obligatorios"
+                    }
+                  },
+                  "caso3": {
+                    "value": {
+                      "error": "impacto_fin no puede ser anterior a impacto_inicio"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Evento no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Evento no encontrado"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El evento debe estar confirmado antes de evaluarlo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "El evento debe estar confirmado antes de evaluarlo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al registrar la evaluación de impacto También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al registrar la evaluación de impacto"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearEvaluacion"
+              },
+              "example": {
+                "evento_id": 1,
+                "afecta_plazo": 1,
+                "dias_adicionales": 3,
+                "impacto_inicio": "2026-09-25",
+                "impacto_fin": "2026-09-27",
+                "afecta_costo": 1,
+                "monto_adicional": 500,
+                "justificacion": "Interrupción de actividades",
+                "evaluado_por": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evaluaciones-impacto/{id}/confirmar": {
+      "patch": {
+        "tags": [
+          "Evaluaciones de impacto"
+        ],
+        "operationId": "confirmarEvaluacion",
+        "summary": "Confirmar evaluación",
+        "description": "Exige vigente === 1 y estado distinto de CONFIRMADA. Asigna CONFIRMADA, confirmada_por y confirmada_en = NOW(). No vuelve a comprobar el estado del evento ni invalida otras evaluaciones.",
+        "responses": {
+          "200": {
+            "description": "Confirmar evaluación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluacionResultado"
+                },
+                "example": {
+                  "message": "Evaluación de impacto confirmada correctamente",
+                  "id_evaluacion": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Debe indicar el usuario que confirma la evaluación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Debe indicar el usuario que confirma la evaluación"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Evaluación de impacto no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "Evaluación de impacto no encontrada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "La evaluación ya no está vigente / La evaluación ya está confirmada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "La evaluación ya no está vigente"
+                    }
+                  },
+                  "caso2": {
+                    "value": {
+                      "error": "La evaluación ya está confirmada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al confirmar la evaluación de impacto También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al confirmar la evaluación de impacto"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la evaluación. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Cuerpo JSON. Los campos requeridos se comprueban por presencia/truthiness según el handler.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmarEvaluacion"
+              },
+              "example": {
+                "confirmada_por": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evaluaciones-impacto/proyecto/{proyectoId}": {
+      "get": {
+        "tags": [
+          "Evaluaciones de impacto"
+        ],
+        "operationId": "listarEvaluacionesProyecto",
+        "summary": "Listar evaluaciones vigentes del proyecto",
+        "description": "Filtra vigente = 1 sin filtrar estado_registro; incluye borradores y confirmadas. JOIN con eventos, sin filtro de evento eliminado. Orden ei.id DESC. Devuelve arreglo directo, posiblemente vacío; no verifica existencia del proyecto.",
+        "responses": {
+          "200": {
+            "description": "Listar evaluaciones vigentes del proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvaluacionProyecto"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener evaluaciones del proyecto También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener evaluaciones del proyecto"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/evaluaciones-impacto/confirmadas": {
+      "get": {
+        "tags": [
+          "Evaluaciones de impacto"
+        ],
+        "operationId": "listarEvaluacionesConfirmadas",
+        "summary": "Listar evaluaciones confirmadas y vigentes",
+        "description": "SELECT * de evaluaciones_impacto con estado_registro = CONFIRMADA y vigente = 1, de todos los proyectos. Sin JOIN con eventos ni orden explícito. Devuelve arreglo directo, posiblemente vacío.",
+        "responses": {
+          "200": {
+            "description": "Listar evaluaciones confirmadas y vigentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvaluacionRegistro"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener evaluaciones confirmadas También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener evaluaciones confirmadas"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evaluaciones-impacto/proyecto/{proyectoId}/confirmadas": {
+      "get": {
+        "tags": [
+          "Evaluaciones de impacto"
+        ],
+        "operationId": "listarEvaluacionesConfirmadasProyecto",
+        "summary": "Listar impactos confirmados del proyecto",
+        "description": "Filtra evaluaciones CONFIRMADA y vigente = 1; JOIN con eventos sin filtro de evento eliminado. Orden e.fecha_inicio ASC. Devuelve arreglo directo, posiblemente vacío; no verifica existencia del proyecto. La selección no incluye estado_registro ni vigente.",
+        "responses": {
+          "200": {
+            "description": "Listar impactos confirmados del proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvaluacionProyectoConfirmada"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener impactos confirmados del proyecto También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener impactos confirmados del proyecto"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/evaluaciones-impacto/proyecto/{proyectoId}/resumen": {
+      "get": {
+        "tags": [
+          "Evaluaciones de impacto"
+        ],
+        "operationId": "obtenerResumenImpactos",
+        "summary": "Calcular resumen de impactos",
+        "description": "Requiere línea base CONFIRMADA. Selecciona evaluaciones CONFIRMADA y vigente = 1 con JOIN a eventos del proyecto, sin filtrar estado o eliminación del evento. Fusiona intervalos con afecta_plazo === 1 y ambas fechas, contando ambos extremos. dias_brutos suma dias_adicionales; dias_superpuestos = dias_brutos - atraso_efectivo_dias y puede ser negativo por incoherencia de datos. costo_adicional suma todos los monto_adicional, sin filtrar afecta_costo. fecha_fin_proyectada suma el atraso a fecha_fin_prevista mediante UTC; costo_proyectado = Number(costo_base) + costo_adicional. Con cero evaluaciones devuelve cero impactos y los valores de la línea base. No inserta una proyección.",
+        "responses": {
+          "200": {
+            "description": "Calcular resumen de impactos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumenImpactos"
+                },
+                "example": {
+                  "proyecto_id": 1,
+                  "evaluaciones_confirmadas": 1,
+                  "fecha_fin_base": "2026-09-30",
+                  "atraso_efectivo_dias": 3,
+                  "fecha_fin_proyectada": "2026-10-03",
+                  "dias_brutos": 3,
+                  "dias_superpuestos": 0,
+                  "costo_base": 100000,
+                  "costo_adicional": 500,
+                  "costo_proyectado": 100500
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe una línea base confirmada para este proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "No existe una línea base confirmada para este proyecto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener resumen de impactos También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener resumen de impactos"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/proyecciones/proyecto/{proyectoId}": {
+      "post": {
+        "tags": [
+          "Proyecciones"
+        ],
+        "operationId": "generarProyeccion",
+        "summary": "Generar y guardar proyección",
+        "description": "Requiere línea base CONFIRMADA. Selecciona evaluaciones CONFIRMADA y vigente = 1 con JOIN a eventos del proyecto, sin filtrar estado o eliminación del evento. Fusiona intervalos con afecta_plazo === 1 y ambas fechas, contando ambos extremos. dias_brutos suma dias_adicionales; dias_superpuestos = dias_brutos - atraso_efectivo_dias y puede ser negativo por incoherencia de datos. costo_adicional suma todos los monto_adicional, sin filtrar afecta_costo. fecha_fin_proyectada suma el atraso a fecha_fin_prevista mediante UTC; costo_proyectado = Number(costo_base) + costo_adicional. Con cero evaluaciones devuelve cero impactos y los valores de la línea base. No requiere cuerpo. Cada llamada inserta una nueva fila en proyecciones; no es idempotente. dias_brutos, dias_superpuestos y evaluaciones_confirmadas se devuelven pero no se guardan en ese INSERT.",
+        "responses": {
+          "201": {
+            "description": "Generar y guardar proyección",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProyeccionGenerada"
+                },
+                "example": {
+                  "message": "Proyección generada y guardada correctamente",
+                  "id_proyeccion": 1,
+                  "proyecto_id": 1,
+                  "linea_base": {
+                    "id": 1,
+                    "proyecto_id": 1,
+                    "fecha_fin_prevista": "2026-09-30",
+                    "costo_base": "100000.00"
+                  },
+                  "evaluaciones_confirmadas": 1,
+                  "dias_brutos": 3,
+                  "dias_superpuestos": 0,
+                  "atraso_efectivo_dias": 3,
+                  "fecha_fin_proyectada": "2026-10-03",
+                  "costo_adicional": 500,
+                  "costo_proyectado": 100500
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe una línea base confirmada para este proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "No existe una línea base confirmada para este proyecto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al generar la proyección También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al generar la proyección"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Proyecciones"
+        ],
+        "operationId": "listarHistorialProyecciones",
+        "summary": "Obtener historial de proyecciones",
+        "description": "Consulta todas las proyecciones por fecha_calculo DESC, sin paginación ni recálculo. Sin registros devuelve total_proyecciones = 0 y proyecciones = [], incluso si el proyecto no existe.",
+        "responses": {
+          "200": {
+            "description": "Obtener historial de proyecciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistorialProyecciones"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener historial de proyecciones También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener historial de proyecciones"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    },
+    "/proyecciones/proyecto/{proyectoId}/actual": {
+      "get": {
+        "tags": [
+          "Proyecciones"
+        ],
+        "operationId": "obtenerProyeccionActual",
+        "summary": "Obtener última proyección guardada",
+        "description": "Consulta ORDER BY fecha_calculo DESC LIMIT 1. No recalcula y puede no reflejar evaluaciones confirmadas posteriormente. No se define desempate cuando fecha_calculo coincide.",
+        "responses": {
+          "200": {
+            "description": "Obtener última proyección guardada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProyeccionActual"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existen proyecciones para este proyecto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "caso1": {
+                    "value": {
+                      "error": "No existen proyecciones para este proyecto"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteSolicitudes"
+          },
+          "500": {
+            "description": "Error al obtener la proyección actual También puede responder el manejador global antes de entrar al handler.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "handler": {
+                    "value": {
+                      "error": "Error al obtener la proyección actual"
+                    }
+                  },
+                  "global": {
+                    "value": {
+                      "error": "Ocurrió un error interno en el servidor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "proyectoId",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del proyecto. No hay validación uniforme de IDs en los handlers; un valor inválido no garantiza respuesta 400.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Mensaje": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Identidad": {
+        "oneOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "Valor enviado como identificador del autor. El handler solo comprueba que sea truthy; el tipo y la integridad referencial dependen de MySQL. No autentica al usuario.",
+        "example": 1
+      },
+      "NumeroBD": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "Número devuelto directamente por mysql2; los tipos SQL y la configuración pueden producir un número o una cadena. Pendiente de contrastar con el esquema SQL.",
+        "example": "1000.00"
+      },
+      "FechaBD": {
+        "type": "string",
+        "nullable": true,
+        "description": "Fecha devuelta directamente por mysql2 y serializada a JSON. Formato exacto y nulabilidad pendientes de verificar con el esquema SQL; no se aplica DATE_FORMAT en estas consultas.",
+        "example": "2026-09-25T00:00:00.000Z"
+      },
+      "Indicador": {
+        "type": "integer",
+        "description": "Indicador numérico: usar 0 o 1. No se valida el dominio de forma exhaustiva en los handlers; algunas reglas comparan estrictamente con el número 1.",
+        "example": 1
+      },
+      "TipoEvento": {
+        "type": "string",
+        "enum": [
+          "SUMINISTRO",
+          "MAQUINARIA",
+          "PERSONAL",
+          "CLIMA",
+          "OTRO"
+        ]
+      },
+      "Proyecto": {
+        "type": "object",
+        "description": "Fila SELECT * de proyectos. Se describen columnas observadas en el código; el esquema SQL no está incluido y pueden existir otras columnas.",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "fecha_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "estado": {
+            "type": "string",
+            "description": "Al crear se asigna PLANIFICACION; no se conoce el catálogo completo de estados."
+          },
+          "propietario_id": {
+            "$ref": "#/components/schemas/Identidad"
+          },
+          "eliminado": {
+            "$ref": "#/components/schemas/Indicador"
+          }
+        }
+      },
+      "LineaBase": {
+        "type": "object",
+        "description": "Fila SELECT * de lineas_base. Columnas, tipos exactos y nulabilidad por confirmar con el DDL. Se permiten columnas adicionales.",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "fecha_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "duracion_dias": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "fecha_fin_prevista": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "costo_base": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "estado": {
+            "type": "string",
+            "description": "Se crea en BORRADOR y la confirmación asigna CONFIRMADA."
+          },
+          "confirmada_por": {
+            "$ref": "#/components/schemas/Identidad"
+          },
+          "confirmada_en": {
+            "$ref": "#/components/schemas/FechaBD"
+          }
+        }
+      },
+      "CrearProyecto": {
+        "type": "object",
+        "required": [
+          "nombre",
+          "fecha_inicio",
+          "propietario_id"
+        ],
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Si es falsy se almacena null."
+          },
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date",
+            "description": "Formato recomendado YYYY-MM-DD. El handler solo comprueba presencia, no valida el formato."
+          },
+          "propietario_id": {
+            "$ref": "#/components/schemas/Identidad"
+          }
+        }
+      },
+      "CrearLineaBase": {
+        "type": "object",
+        "required": [
+          "fecha_inicio",
+          "duracion_dias",
+          "fecha_fin_prevista",
+          "costo_base"
+        ],
+        "properties": {
+          "fecha_inicio": {
+            "type": "string",
+            "format": "date",
+            "description": "Formato recomendado; el handler no valida formato ni orden de fechas."
+          },
+          "duracion_dias": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "description": "Debe ser mayor que cero. El handler no exige que sea entero."
+          },
+          "fecha_fin_prevista": {
+            "type": "string",
+            "format": "date"
+          },
+          "costo_base": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Se rechaza si es menor que cero; no se aplica validación estricta de tipo."
+          }
+        }
+      },
+      "CrearEvento": {
+        "type": "object",
+        "required": [
+          "proyecto_id",
+          "tipo",
+          "descripcion",
+          "fecha_inicio",
+          "registrado_por"
+        ],
+        "properties": {
+          "proyecto_id": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Se exige que Number(proyecto_id) sea entero positivo.",
+            "example": 1
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoEvento"
+          },
+          "descripcion": {
+            "type": "string",
+            "description": "Debe ser truthy y texto. Se rechaza si descripcion.trim().length supera 500; no se recorta antes de guardar."
+          },
+          "fecha_inicio": {
+            "type": "string",
+            "description": "Debe ser interpretable por Date.parse; se recomienda YYYY-MM-DD.",
+            "example": "2026-09-25"
+          },
+          "fecha_fin": {
+            "type": "string",
+            "nullable": true,
+            "description": "Si es truthy debe ser interpretable por Date.parse y no anterior al inicio. Si es falsy se guarda null.",
+            "example": "2026-09-27"
+          },
+          "afecta_operacion": {
+            "type": "integer",
+            "nullable": true,
+            "default": 1,
+            "description": "Usar 0/1. Omitido o null se sustituye por 1; no se valida el dominio."
+          },
+          "costo_observado": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "default": 0,
+            "description": "Omitido o null se sustituye por 0. El handler solo rechaza Number(valor) < 0, sin validar exhaustivamente el tipo."
+          },
+          "registrado_por": {
+            "$ref": "#/components/schemas/Identidad"
+          }
+        }
+      },
+      "CrearEvaluacion": {
+        "type": "object",
+        "required": [
+          "evento_id",
+          "evaluado_por"
+        ],
+        "properties": {
+          "evento_id": {
+            "$ref": "#/components/schemas/Identidad"
+          },
+          "afecta_plazo": {
+            "type": "integer",
+            "nullable": true,
+            "default": 0,
+            "description": "Usar 0/1. Solo el número 1 activa la exigencia de fechas; no boolean true ni la cadena '1'. Omitido o null se sustituye por 0."
+          },
+          "dias_adicionales": {
+            "type": "number",
+            "nullable": true,
+            "default": 0,
+            "description": "Omitido o null se sustituye por 0. No se deriva del intervalo ni se valida que coincida con él; tampoco se rechazan negativos explícitamente."
+          },
+          "impacto_inicio": {
+            "type": "string",
+            "nullable": true,
+            "description": "Obligatorio cuando afecta_plazo === 1. Se recomienda YYYY-MM-DD; no se valida Date.parse. Si es falsy se guarda null.",
+            "example": "2026-09-25"
+          },
+          "impacto_fin": {
+            "type": "string",
+            "nullable": true,
+            "description": "Obligatorio cuando afecta_plazo === 1. Si ambas fechas son truthy se rechaza fin anterior a inicio. Si es falsy se guarda null.",
+            "example": "2026-09-27"
+          },
+          "afecta_costo": {
+            "type": "integer",
+            "nullable": true,
+            "default": 0,
+            "description": "Usar 0/1. Omitido o null se sustituye por 0. No controla la suma de monto_adicional en el backend."
+          },
+          "monto_adicional": {
+            "type": "number",
+            "nullable": true,
+            "default": 0,
+            "description": "Omitido o null se sustituye por 0. El handler no rechaza explícitamente negativos."
+          },
+          "justificacion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Si es falsy se almacena null."
+          },
+          "evaluado_por": {
+            "$ref": "#/components/schemas/Identidad"
+          }
+        }
+      },
+      "ConfirmarEvento": {
+        "type": "object",
+        "required": [
+          "confirmado_por"
+        ],
+        "properties": {
+          "confirmado_por": {
+            "$ref": "#/components/schemas/Identidad"
+          }
+        }
+      },
+      "ConfirmarEvaluacion": {
+        "type": "object",
+        "required": [
+          "confirmada_por"
+        ],
+        "properties": {
+          "confirmada_por": {
+            "$ref": "#/components/schemas/Identidad"
+          }
+        }
+      },
+      "ConfirmarLineaBase": {
+        "type": "object",
+        "required": [
+          "confirmada_por"
+        ],
+        "properties": {
+          "confirmada_por": {
+            "$ref": "#/components/schemas/Identidad"
+          }
+        }
+      },
+      "EventoListado": {
+        "type": "object",
+        "required": [
+          "id",
+          "tipo",
+          "descripcion",
+          "fecha_inicio",
+          "fecha_fin",
+          "afecta_operacion",
+          "costo_observado",
+          "estado_registro"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoEvento"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "fecha_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "fecha_fin": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "afecta_operacion": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "costo_observado": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "estado_registro": {
+            "type": "string",
+            "description": "La confirmación asigna CONFIRMADO. El estado inicial depende de MySQL."
+          }
+        }
+      },
+      "EvaluacionProyectoConfirmada": {
+        "type": "object",
+        "required": [
+          "evaluacion_id",
+          "evento_id",
+          "proyecto_id",
+          "tipo",
+          "descripcion",
+          "fecha_inicio",
+          "fecha_fin",
+          "afecta_plazo",
+          "dias_adicionales",
+          "impacto_inicio",
+          "impacto_fin",
+          "afecta_costo",
+          "monto_adicional",
+          "justificacion"
+        ],
+        "properties": {
+          "evaluacion_id": {
+            "type": "integer"
+          },
+          "evento_id": {
+            "type": "integer"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoEvento"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "fecha_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "fecha_fin": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "afecta_plazo": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "dias_adicionales": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "impacto_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "impacto_fin": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "afecta_costo": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "monto_adicional": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "justificacion": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EvaluacionProyecto": {
+        "type": "object",
+        "required": [
+          "evaluacion_id",
+          "evento_id",
+          "proyecto_id",
+          "tipo",
+          "descripcion",
+          "fecha_inicio",
+          "fecha_fin",
+          "afecta_plazo",
+          "dias_adicionales",
+          "impacto_inicio",
+          "impacto_fin",
+          "afecta_costo",
+          "monto_adicional",
+          "justificacion",
+          "estado_registro",
+          "vigente"
+        ],
+        "properties": {
+          "evaluacion_id": {
+            "type": "integer"
+          },
+          "evento_id": {
+            "type": "integer"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoEvento"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "fecha_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "fecha_fin": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "afecta_plazo": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "dias_adicionales": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "impacto_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "impacto_fin": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "afecta_costo": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "monto_adicional": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "justificacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado_registro": {
+            "type": "string"
+          },
+          "vigente": {
+            "$ref": "#/components/schemas/Indicador"
+          }
+        }
+      },
+      "EvaluacionRegistro": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Fila SELECT * de evaluaciones_impacto, sin datos del JOIN con eventos. El DDL no está incluido; estado inicial, vigente inicial, columnas adicionales y nulabilidad están pendientes de comprobar.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "evento_id": {
+            "type": "integer"
+          },
+          "afecta_plazo": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "dias_adicionales": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "impacto_inicio": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "impacto_fin": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "afecta_costo": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "monto_adicional": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "justificacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "evaluado_por": {
+            "$ref": "#/components/schemas/Identidad"
+          },
+          "estado_registro": {
+            "type": "string"
+          },
+          "vigente": {
+            "$ref": "#/components/schemas/Indicador"
+          },
+          "confirmada_por": {
+            "$ref": "#/components/schemas/Identidad"
+          },
+          "confirmada_en": {
+            "$ref": "#/components/schemas/FechaBD"
+          }
+        }
+      },
+      "ProyeccionGuardada": {
+        "type": "object",
+        "required": [
+          "id",
+          "proyecto_id",
+          "linea_base_id",
+          "fecha_calculo",
+          "atraso_efectivo_dias",
+          "fecha_fin_proyectada",
+          "costo_adicional",
+          "costo_proyectado",
+          "comentarios"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "linea_base_id": {
+            "type": "integer"
+          },
+          "fecha_calculo": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "atraso_efectivo_dias": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "fecha_fin_proyectada": {
+            "$ref": "#/components/schemas/FechaBD"
+          },
+          "costo_adicional": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "costo_proyectado": {
+            "$ref": "#/components/schemas/NumeroBD"
+          },
+          "comentarios": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ResumenImpactos": {
+        "type": "object",
+        "required": [
+          "proyecto_id",
+          "evaluaciones_confirmadas",
+          "dias_brutos",
+          "dias_superpuestos",
+          "atraso_efectivo_dias",
+          "fecha_fin_proyectada",
+          "costo_adicional",
+          "costo_proyectado",
+          "fecha_fin_base",
+          "costo_base"
+        ],
+        "properties": {
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "evaluaciones_confirmadas": {
+            "type": "integer",
+            "description": "Cantidad de evaluaciones confirmadas y vigentes seleccionadas."
+          },
+          "dias_brutos": {
+            "type": "number",
+            "description": "Suma de Number(dias_adicionales || 0) de todas las evaluaciones seleccionadas."
+          },
+          "dias_superpuestos": {
+            "type": "number",
+            "description": "dias_brutos - atraso_efectivo_dias. Puede ser negativo si los días declarados no coinciden con los intervalos."
+          },
+          "atraso_efectivo_dias": {
+            "type": "integer",
+            "description": "Unión de intervalos con afecta_plazo === 1 y ambas fechas; cuenta ambos extremos."
+          },
+          "fecha_fin_proyectada": {
+            "type": "string",
+            "format": "date"
+          },
+          "costo_adicional": {
+            "type": "number",
+            "description": "Suma de Number(monto_adicional || 0), sin filtrar por afecta_costo."
+          },
+          "costo_proyectado": {
+            "type": "number",
+            "description": "Number(costo_base) + costo_adicional."
+          },
+          "fecha_fin_base": {
+            "type": "string",
+            "format": "date"
+          },
+          "costo_base": {
+            "type": "number"
+          }
+        }
+      },
+      "ProyeccionGenerada": {
+        "type": "object",
+        "required": [
+          "message",
+          "id_proyeccion",
+          "proyecto_id",
+          "evaluaciones_confirmadas",
+          "dias_brutos",
+          "dias_superpuestos",
+          "atraso_efectivo_dias",
+          "fecha_fin_proyectada",
+          "costo_adicional",
+          "costo_proyectado",
+          "linea_base"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "id_proyeccion": {
+            "type": "integer"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "evaluaciones_confirmadas": {
+            "type": "integer",
+            "description": "Cantidad de evaluaciones confirmadas y vigentes seleccionadas."
+          },
+          "dias_brutos": {
+            "type": "number",
+            "description": "Suma de Number(dias_adicionales || 0) de todas las evaluaciones seleccionadas."
+          },
+          "dias_superpuestos": {
+            "type": "number",
+            "description": "dias_brutos - atraso_efectivo_dias. Puede ser negativo si los días declarados no coinciden con los intervalos."
+          },
+          "atraso_efectivo_dias": {
+            "type": "integer",
+            "description": "Unión de intervalos con afecta_plazo === 1 y ambas fechas; cuenta ambos extremos."
+          },
+          "fecha_fin_proyectada": {
+            "type": "string",
+            "format": "date"
+          },
+          "costo_adicional": {
+            "type": "number",
+            "description": "Suma de Number(monto_adicional || 0), sin filtrar por afecta_costo."
+          },
+          "costo_proyectado": {
+            "type": "number",
+            "description": "Number(costo_base) + costo_adicional."
+          },
+          "linea_base": {
+            "type": "object",
+            "required": [
+              "id",
+              "proyecto_id",
+              "fecha_fin_prevista",
+              "costo_base"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "proyecto_id": {
+                "type": "integer"
+              },
+              "fecha_fin_prevista": {
+                "type": "string",
+                "format": "date"
+              },
+              "costo_base": {
+                "$ref": "#/components/schemas/NumeroBD"
+              }
+            }
+          }
+        }
+      },
+      "EventoResultado": {
+        "type": "object",
+        "required": [
+          "message",
+          "id_evento"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "id_evento": {
+            "type": "integer"
+          }
+        }
+      },
+      "EvaluacionResultado": {
+        "type": "object",
+        "required": [
+          "message",
+          "id_evaluacion"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "id_evaluacion": {
+            "type": "integer"
+          }
+        }
+      },
+      "EventosProyecto": {
+        "type": "object",
+        "required": [
+          "proyecto_id",
+          "total_eventos",
+          "eventos"
+        ],
+        "properties": {
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "total_eventos": {
+            "type": "integer"
+          },
+          "eventos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventoListado"
+            }
+          }
+        }
+      },
+      "ProyeccionActual": {
+        "type": "object",
+        "required": [
+          "message",
+          "proyecto_id",
+          "proyeccion"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "proyeccion": {
+            "$ref": "#/components/schemas/ProyeccionGuardada"
+          }
+        }
+      },
+      "HistorialProyecciones": {
+        "type": "object",
+        "required": [
+          "message",
+          "proyecto_id",
+          "total_proyecciones",
+          "proyecciones"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "proyecto_id": {
+            "type": "integer"
+          },
+          "total_proyecciones": {
+            "type": "integer"
+          },
+          "proyecciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProyeccionGuardada"
+            }
+          }
+        }
+      },
+      "ProyectoResultado": {
+        "type": "object",
+        "required": [
+          "message",
+          "proyecto"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "proyecto": {
+            "$ref": "#/components/schemas/Proyecto"
+          }
+        }
+      },
+      "LineaBaseResultado": {
+        "type": "object",
+        "required": [
+          "message",
+          "linea_base"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "linea_base": {
+            "$ref": "#/components/schemas/LineaBase"
+          }
+        }
+      }
+    },
+    "responses": {
+      "LimiteSolicitudes": {
+        "description": "Límite global: 100 solicitudes por IP en 15 minutos.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Demasiadas solicitudes. Intenta nuevamente en unos minutos."
+            }
+          }
+        }
+      },
+      "ErrorGlobal": {
+        "description": "Error capturado por el manejador global, incluidos errores del parser JSON.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Ocurrió un error interno en el servidor"
+            }
+          }
+        }
+      }
+    }
+  }
+}
