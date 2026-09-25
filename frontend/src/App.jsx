@@ -551,16 +551,21 @@ fetch(`${API_URL}/eventos/proyecto/1`)
 
   if (cargando) {
     return (
-      <div className="mensaje">
-        Cargando información...
+      <div className="pantalla-estado" role="status">
+        <span className="marca">GO</span>
+        <h1>Gestión operativa</h1>
+        <p>Cargando información del proyecto…</p>
       </div>
     )
   }
 
   if (error && !proyecto) {
     return (
-      <div className="mensaje error">
-        Error: {error}
+      <div className="pantalla-estado" role="alert">
+        <span className="marca">GO</span>
+        <h1>No se pudo cargar el proyecto</h1>
+        <p>{error}</p>
+        <button className="boton-proyeccion" onClick={() => window.location.reload()}>Reintentar</button>
       </div>
     )
   }
@@ -571,6 +576,11 @@ fetch(`${API_URL}/eventos/proyecto/1`)
 
   return (
     <main className="dashboard">
+      <a className="saltar-contenido" href="#areas">Ir a las áreas de trabajo</a>
+      <div className="barra-aplicacion">
+        <a className="identidad" href="#"><span className="marca" aria-hidden="true">GO</span><span>Gestión operativa<span className="identidad-detalle">Control y seguimiento de proyectos</span></span></a>
+        <span className="contexto">Panel de proyecto</span>
+      </div>
 
       {/* ============================================= */}
       {/* ENCABEZADO DEL PROYECTO */}
@@ -589,7 +599,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
           </p>
         </div>
 
-        <span className="estado">
+        <span className="estado" data-estado={proyecto.estado}>
           {proyecto.estado}
         </span>
       </header>
@@ -614,7 +624,8 @@ fetch(`${API_URL}/eventos/proyecto/1`)
           </span>
         </div>
 
-        <div className="tarjetas tarjetas-proyeccion">
+        {!proyeccion && <p className="vacio">Todavía no hay una proyección disponible. Registre y confirme las evaluaciones para generar una.</p>}
+        {proyeccion && <div className="tarjetas tarjetas-proyeccion">
 
           <article className="tarjeta">
             <span className="etiqueta">
@@ -680,62 +691,71 @@ fetch(`${API_URL}/eventos/proyecto/1`)
             </span>
           </article>
 
-        </div>
+        </div>}
       </section>
 
       {/* ============================================= */}
       {/* NAVEGACIÓN */}
       {/* ============================================= */}
 
-      <nav className="modulos">
+      <div className="titulo-seccion" id="areas">
+        <div><p className="subtitulo">ÁREAS DE TRABAJO</p><h2>Gestión del proyecto</h2></div>
+        <span className="actualizacion">De la planificación al seguimiento</span>
+      </div>
+      <nav className="modulos" aria-label="Áreas de gestión del proyecto">
 
         <button
           type="button"
           onClick={cargarLineaBase}
+          aria-expanded={moduloActivo === 'linea-base'}
           className={moduloActivo === 'linea-base' ? 'modulo-activo' : ''}
         >
-          Línea base
+          <span className="numero-modulo" aria-hidden="true">01</span><span>Línea base<small>Planificación inicial</small></span>
         </button>
 
         <button
           type="button"
-          onClick={cargarEventos}
+          onClick={() => cargarEventos()}
+          aria-expanded={moduloActivo === 'eventos'}
           className={moduloActivo === 'eventos' ? 'modulo-activo' : ''}
         >
-          Eventos
+          <span className="numero-modulo" aria-hidden="true">02</span><span>Eventos<small>Registro y confirmación</small></span>
         </button>
 
         <button
           type="button"
-          onClick={cargarEvaluaciones}
+          onClick={() => cargarEvaluaciones()}
+          aria-expanded={moduloActivo === 'evaluaciones'}
            className={moduloActivo === 'evaluaciones' ? 'modulo-activo' : ''}
         >
-          Evaluaciones
+          <span className="numero-modulo" aria-hidden="true">03</span><span>Evaluaciones<small>Impacto y proyecciones</small></span>
         </button>
 
         <button
           type="button"
           onClick={cargarHistorial}
+          aria-expanded={moduloActivo === 'historial'}
           className={moduloActivo === 'historial' ? 'modulo-activo' : ''}
         >
-          Historial
+          <span className="numero-modulo" aria-hidden="true">04</span><span>Historial<small>Seguimiento de proyecciones</small></span>
         </button>
 
       </nav>
+      {!moduloActivo && <p className="guia-modulos">Seleccione un área para consultar la planificación, gestionar eventos o revisar las proyecciones del proyecto.</p>}
 
       {/* ============================================= */}
       {/* ERROR DE ALGÚN MÓDULO */}
       {/* ============================================= */}
 
       {error && (
-        <div className="mensaje error">
+        <div className="mensaje error" role="alert">
           Error: {error}
         </div>
       )}
 
 
       {mensajeExito && (
-        <div className="notificacion-exito">
+        <div className="notificacion-exito" role="status">
           {mensajeExito}
         </div>
       )}
@@ -759,7 +779,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
                 <h2>Línea base</h2>
               </div>
 
-              <span className="estado">
+              <span className="estado" data-estado={lineaBase.estado}>
                 {lineaBase.estado}
               </span>
 
@@ -856,6 +876,8 @@ fetch(`${API_URL}/eventos/proyecto/1`)
               <p className="subtitulo">
                 OPERACIÓN
               </p>
+              <h2>Gestión de eventos</h2>
+              <p className="descripcion">Registre lo ocurrido y confirme cada evento antes de evaluar su impacto.</p>
             </div>
           </div>
 
@@ -960,7 +982,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
 
             {eventos.length === 0 ? (
 
-              <p>
+              <p className="vacio">
                 No existen eventos registrados.
               </p>
 
@@ -988,7 +1010,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
                         Confirmar evento
                       </button>
                     ) : (
-                      <span className="estado">
+                      <span className="estado" data-estado={evento.estado_registro}>
                         {evento.estado_registro}
                       </span>
                     )}
@@ -1248,7 +1270,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
 
           <div className="lista-eventos">
             {evaluaciones.length === 0 ? (
-              <p>No existen evaluaciones vigentes para este proyecto.</p>
+              <p className="vacio">No existen evaluaciones vigentes para este proyecto.</p>
             ) : (
               evaluaciones.map((evaluacion) => (
                 <article
@@ -1271,7 +1293,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
                         Confirmar evaluación
                       </button>
                     ) : (
-                      <span className="estado">CONFIRMADA</span>
+                      <span className="estado" data-estado="CONFIRMADA">CONFIRMADA</span>
                     )}
                   </div>
 
@@ -1348,6 +1370,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
 
             <div className="lista-eventos">
 
+              {historial.length === 0 && <p className="vacio">Todavía no hay proyecciones registradas en el historial.</p>}
               {historial.map((registro, index) => (
                 <article
                   className="tarjeta-evento"
@@ -1360,7 +1383,7 @@ fetch(`${API_URL}/eventos/proyecto/1`)
                     </span>
 
                     {index === 0 && (
-                      <span className="estado">
+                      <span className="estado" data-estado="VIGENTE">
                         VIGENTE
                       </span>
                     )}
