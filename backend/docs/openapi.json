@@ -3,7 +3,7 @@
   "info": {
     "title": "API de Gestión Operativa Empresarial",
     "version": "1.0.0",
-    "description": "Especificación de las operaciones registradas en backend/app.js y backend/routes. No hay prefijo /api/v1 ni autenticación implementada. Los campos de autor no verifican identidad. Los esquemas de entrada describen el uso previsto y explican las validaciones parciales y coerciones actuales; no añaden validación al servidor. Las filas SQL y su serialización requieren contrastarse con el DDL, no incluido en el repositorio. Límite JSON: 100kb. El manejador global transforma errores de parsing/tamaño en 500; no se prometen 400/413 para esos casos. Rutas no registradas responden 404 con {\"error\":\"Ruta no encontrada\"}. No existe /db-test. Swagger est? disponible en /api-docs y /api-docs.json."
+    "description": "Especificación de las operaciones registradas en backend/app.js y backend/routes. No hay prefijo /api/v1. La API implementa autenticación JWT y autorización mediante los roles ADMIN y SUPERVISOR en las rutas que incorporan estos controles. Los campos de autor no verifican identidad. Los esquemas de entrada describen el uso previsto y explican las validaciones parciales y coerciones actuales; no añaden validación al servidor. Las filas SQL y su serialización requieren contrastarse con el DDL, no incluido en el repositorio. Límite JSON: 100kb. El manejador global transforma errores de parsing/tamaño en 500; no se prometen 400/413 para esos casos. Rutas no registradas responden 404 con {\"error\":\"Ruta no encontrada\"}. No existe /db-test. Swagger est? disponible en /api-docs y /api-docs.json."
   },
   "servers": [
     {

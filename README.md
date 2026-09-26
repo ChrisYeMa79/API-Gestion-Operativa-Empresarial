@@ -349,7 +349,7 @@ Ubicación:
 backend/app.js
 ```
 
-La configuración será adaptada al dominio correspondiente durante el despliegue en producción.
+CORS utiliza la variable de entorno `FRONTEND_URL` para definir el origen autorizado. En producción corresponde al frontend desplegado en Netlify; el valor predeterminado para desarrollo local es `http://localhost:5173`.
 
 ### Variables de entorno
 
@@ -444,17 +444,9 @@ Resultado actual: `6 passing`.
 
 ### Consideraciones para producción
 
-La configuración actual corresponde al entorno local de desarrollo.
+El proyecto está desplegado en producción: el frontend en Netlify, la API en Render y la base de datos MySQL en Aiven.
 
-Para un despliegue de producción deberán completarse controles adicionales, entre ellos:
-
-- Utilizar HTTPS/TLS.
-- Sustituir el usuario MySQL de desarrollo por un usuario específico con privilegios mínimos.
-- Configurar CORS con el dominio definitivo del frontend.
-- Definir mecanismos de monitoreo, respaldo y recuperación.
-- Configurar las variables de entorno correspondientes al servicio de producción.
-
-Los controles relacionados con autenticación, sesiones, cookies, CSRF y carga de archivos no forman parte de la arquitectura actual de esta versión de la aplicación.
+La configuración de producción se gestiona mediante variables de entorno: `VITE_API_URL` define la URL de la API para el frontend, `FRONTEND_URL` define el origen autorizado por CORS y las variables del backend proporcionan la configuración de conexión a MySQL y autenticación.
 ---
 
 ## 10. Conexión con MySQL
@@ -738,7 +730,7 @@ npm run preview
 
 ## 17. Estado actual del proyecto
 
-Actualmente se encuentra verificado en entorno local el flujo:
+El proyecto está desplegado en producción con Netlify, Render y MySQL en Aiven. También se encuentra verificado en entorno local el flujo:
 
 ```text
 MySQL
@@ -780,34 +772,26 @@ El proyecto también cuenta actualmente con:
 
 ## 18. Despliegue
 
-El proyecto mantiene separados frontend y backend para permitir estrategias de despliegue independientes.
+El proyecto se encuentra desplegado en producción con frontend y backend separados:
 
-El frontend se encuentra preparado para generación de producción mediante `npm run build`, proceso que fue ejecutado y verificado correctamente.
+- Frontend React + Vite: Netlify.
+- Backend/API Node.js + Express: Render.
+- Base de datos MySQL: Aiven.
 
-La URL del backend se encuentra desacoplada del código mediante la variable de entorno `VITE_API_URL`, permitiendo configurar una dirección diferente para desarrollo o producción sin modificar el código fuente.
+El frontend genera su compilación de producción mediante `npm run build`, proceso que fue ejecutado y verificado correctamente.
 
-El despliegue público se considera una etapa adicional del proyecto y puede realizarse utilizando servicios compatibles con las tecnologías empleadas.
+La variable de entorno `VITE_API_URL` configura la URL pública de la API de Render en el frontend. En el backend, `FRONTEND_URL` define el dominio del frontend de Netlify autorizado por CORS. Las variables de entorno del backend configuran la conexión a MySQL en Aiven y la autenticación, sin incorporar secretos al código fuente.
 
-Para un entorno de producción será necesario configurar, entre otros aspectos:
-
-- URL pública del backend mediante `VITE_API_URL`.
-- CORS con el dominio definitivo del frontend.
-- Variables de entorno del backend.
-- Conexión segura a la base de datos de producción.
-- Usuario de base de datos con privilegios mínimos.
-- HTTPS/TLS.
-- Monitoreo, respaldo y estrategia de recuperación.
-
-La versión actual se encuentra completamente funcional y verificada en entorno local.
+La instalación local descrita anteriormente se mantiene disponible para desarrollo y pruebas.
 
 ---
 
 ## 19. Posibles ampliaciones
 
+El proyecto ya implementa autenticación JWT y control de acceso mediante los roles ADMIN y SUPERVISOR en las rutas que incorporan estos controles. Esto no implica que todas las rutas de la API estén protegidas.
+
 La arquitectura permite considerar futuras funcionalidades como:
 
-- Autenticación y autorización de usuarios.
-- Roles y permisos.
 - Gestión de múltiples organizaciones.
 - Paneles estadísticos.
 - Indicadores operativos.
@@ -815,7 +799,6 @@ La arquitectura permite considerar futuras funcionalidades como:
 - Auditoría de modificaciones.
 - Integración con sistemas externos.
 - Contenedores.
-- Despliegue completo en infraestructura cloud.
 
 ---
 
